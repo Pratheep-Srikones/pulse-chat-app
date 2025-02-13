@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { toastError } from "../utils/notify";
 
 import axiosInstance from "../utils/axios";
-import { AuthUser } from "./useAuthStore";
+import { AuthUser, useAuthStore } from "./useAuthStore";
 
 interface Message {
   _id: string;
@@ -24,6 +24,8 @@ interface ChatState {
   getMessages: (userId: string) => Promise<void>;
   sendMessage: (text: string, image: string) => Promise<void>;
   setSelectedUser: (user: AuthUser | null) => void;
+  subscribeToMessages: () => void;
+  unsubscribeFromMessages: () => void;
 }
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
@@ -73,6 +75,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
       toastError("Error sending message");
       console.error("Error sending message", error);
     }
+  },
+  subscribeToMessages: () => {
+    const { selectedUser } = get();
+
+    if (!selectedUser) return;
+    const socket = useAuthStore.getState().socket;
+    socket?.on("newMessage", (newMessage: Message) => {
+      if (newMessage.senderId !== selectedUser._id) return;
+      set({ messages: [...get().messages, newMessage] });
+    });
+  },
+
+  unsubscribeFromMessages: () => {
+    const socket = useAuthStore.getState().socket;
+    socket?.off("newMessage");
   },
   setSelectedUser: (user: AuthUser | null) => set({ selectedUser: user }),
 }));

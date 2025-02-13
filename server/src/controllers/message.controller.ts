@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from "../middlewares/auth.middleware";
 import User from "../models/user.model";
 import Message from "../models/message.model";
 import cloudinary from "../utils/cloudinary";
+import { getUserScoketId, io } from "../utils/socket";
 
 export const getOtherUsers = async (
   req: AuthenticatedRequest,
@@ -59,8 +60,11 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     await newMessage.save();
+    const receiverSocketId = getUserScoketId(receiverId);
 
-    //TODO: Real time functionality
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
 
     res.status(201).json(newMessage);
   } catch (error) {
