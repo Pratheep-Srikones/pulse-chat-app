@@ -104,47 +104,61 @@ export const updateProfile = async (
   req: AuthenticatedRequest,
   res: Response
 ) => {
-  const { profilePic, bio } = req.body;
   try {
     const userId = req.user._id;
-    let updatedUser;
+    const { profilePic } = req.body; // Expect Base64 string
 
-    if (profilePic) {
-      const uploadResult = await cloudinary.uploader.upload(profilePic);
-      updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { profile_pic_url: uploadResult.secure_url },
-        { new: true }
-      );
-
-      if (!updatedUser) {
-        res.status(404).json({ message: "User not found" });
-        return;
-      }
-    }
-
-    if (bio) {
-      updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { bio: bio },
-        { new: true }
-      );
-      if (!updatedUser) {
-        res.status(404).json({ message: "User not found" });
-        return;
-      }
-    }
-    if (!updatedUser) {
-      res.status(400).json({ message: "No changes to update" });
+    if (!profilePic) {
+      res.status(400).json({ message: "No profile picture provided" });
       return;
     }
-    res.status(200).json({ updatedUser, message: "Profile updated" });
+
+    // Upload Base64 image directly to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(profilePic, {
+      folder: "profile_pictures",
+    });
+
+    // Update user's profile picture URL in database
+    const updatedUserPic = await User.findByIdAndUpdate(
+      userId,
+      { profile_pic_url: uploadResult.secure_url },
+      { new: true }
+    );
+
+    if (!updatedUserPic) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({
+      updatedUser: updatedUserPic,
+      message: "Profile updated successfully",
+    });
   } catch (error) {
-    console.error("Error in Update Profile", error);
+    console.error("Error updating profile:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+export const updateBio = async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user._id;
+  const { bio } = req.body;
 
+  try {
+    const updatedUserBio = await User.findByIdAndUpdate(userId, { bio });
+
+    if (!updatedUserBio) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    res.status(200).json({
+      updatedUser: updatedUserBio,
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating bio:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
 export const checkAuth = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const user = req.user;

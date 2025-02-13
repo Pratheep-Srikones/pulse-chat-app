@@ -4,6 +4,7 @@ import {
   login,
   logout,
   signup,
+  updateBio,
   updateProfile,
 } from "../controllers/auth.controller";
 import { protectedRoute } from "../middlewares/auth.middleware";
@@ -15,5 +16,6 @@ router.post("/login", login);
 router.post("/logout", logout);
 
 router.put("/update-profile", protectedRoute, updateProfile);
+router.put("/update-bio", protectedRoute, updateBio);
 router.get("/check", protectedRoute, checkAuth);
 export default router;

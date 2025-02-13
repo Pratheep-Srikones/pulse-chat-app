@@ -9,9 +9,9 @@ import {
   User,
   Lock,
 } from "lucide-react";
-import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import AuthImagePattern from "../../components/AuthImagePattern";
+import { toastError } from "../../utils/notify";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,13 +24,13 @@ const Signup = () => {
   const { signup, isSigningUp } = useAuthStore();
 
   const validateForm = () => {
-    if (!formData.full_name.trim()) return toast.error("Full name is required");
-    if (!formData.email.trim()) return toast.error("Email is required");
+    if (!formData.full_name.trim()) return toastError("Full name is required");
+    if (!formData.email.trim()) return toastError("Email is required");
     if (!/\S+@\S+\.\S+/.test(formData.email))
-      return toast.error("Invalid email format");
-    if (!formData.password) return toast.error("Password is required");
+      return toastError("Invalid email format");
+    if (!formData.password) return toastError("Password is required");
     if (formData.password.length < 6)
-      return toast.error("Password must be at least 6 characters");
+      return toastError("Password must be at least 6 characters");
 
     return true;
   };
