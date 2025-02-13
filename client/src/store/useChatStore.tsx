@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { create } from "zustand";
 import { toastError } from "../utils/notify";
 
@@ -16,15 +15,15 @@ interface Message {
 }
 interface ChatState {
   messages: Message[];
-  users: AuthUser["user"][];
+  users: AuthUser[];
 
-  selectedUser: AuthUser["user"] | null;
+  selectedUser: AuthUser | null;
   isUsersLoading: boolean;
   isMessagesLoading: boolean;
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
   sendMessage: (text: string, image: string) => Promise<void>;
-  setSelectedUser: (user: AuthUser["user"] | null) => void;
+  setSelectedUser: (user: AuthUser | null) => void;
 }
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
@@ -75,6 +74,5 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.error("Error sending message", error);
     }
   },
-  setSelectedUser: (user: AuthUser["user"] | null) =>
-    set({ selectedUser: user }),
+  setSelectedUser: (user: AuthUser | null) => set({ selectedUser: user }),
 }));

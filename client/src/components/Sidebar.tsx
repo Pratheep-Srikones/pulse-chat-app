@@ -50,7 +50,7 @@ const Sidebar = () => {
                 alt={user.full_name}
                 className="size-12 object-cover rounded-full"
               />
-              {onlineUsers?.includes(user) && (
+              {onlineUsers?.includes(user!._id) && (
                 <span
                   className="absolute bottom-0 right-0 size-3 bg-green-500 
                   rounded-full ring-2 ring-zinc-900"
@@ -62,7 +62,11 @@ const Sidebar = () => {
             <div className="hidden lg:block text-left min-w-0">
               <div className="font-medium truncate">{user.full_name}</div>
               <div className="text-sm text-zinc-400">
-                {onlineUsers?.includes(user) ? "Online" : "Offline"}
+                {onlineUsers?.includes(user!._id) ? (
+                  <span className="text-green-600">Online</span>
+                ) : (
+                  "Offline"
+                )}
               </div>
             </div>
           </button>

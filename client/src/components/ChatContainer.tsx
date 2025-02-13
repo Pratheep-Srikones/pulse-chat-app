@@ -33,17 +33,15 @@ const ChatContainer = () => {
           <div
             key={message._id}
             className={`chat ${
-              message.senderId === authUser!.user!._id
-                ? "chat-end"
-                : "chat-start"
+              message.senderId === authUser!._id ? "chat-end" : "chat-start"
             }`}
           >
             <div className=" chat-image avatar">
               <div className="size-10 rounded-full border">
                 <img
                   src={
-                    message.senderId === authUser!.user!._id
-                      ? authUser!.user!.profile_pic_url || "/avatar.png"
+                    message.senderId === authUser!._id
+                      ? authUser!.profile_pic_url || "/avatar.png"
                       : selectedUser!.profile_pic_url || "/avatar.png"
                   }
                   alt="profile pic"
