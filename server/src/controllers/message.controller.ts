@@ -4,6 +4,7 @@ import User from "../models/user.model";
 import Message from "../models/message.model";
 import cloudinary from "../utils/cloudinary";
 import { getUserScoketId, io } from "../utils/socket";
+import Chat from "../models/chat.model";
 
 export const getOtherUsers = async (
   req: AuthenticatedRequest,
@@ -23,14 +24,10 @@ export const getOtherUsers = async (
 };
 
 export const getMessages = async (req: AuthenticatedRequest, res: Response) => {
-  const { id: otherUserID } = req.params;
-  const currentUserID = req.user._id;
+  const { id: chatId } = req.params;
   try {
     const messages = await Message.find({
-      $or: [
-        { receiverId: currentUserID, senderId: otherUserID },
-        { receiverId: otherUserID, senderId: currentUserID },
-      ],
+      chatId,
     });
 
     res.status(200).json(messages);
@@ -42,8 +39,16 @@ export const getMessages = async (req: AuthenticatedRequest, res: Response) => {
 
 export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
   const { text, image } = req.body;
-  const { id: receiverId } = req.params;
+  const { id: chatId } = req.params;
   const senderId = req.user._id;
+
+  const participants = await Chat.findOne({ _id: chatId }).select(
+    "participants"
+  );
+  if (!participants) {
+    res.status(404).json({ message: "Chat not found" });
+    return;
+  }
 
   try {
     let imgUrl;
@@ -54,16 +59,19 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
 
     const newMessage = new Message({
       senderId,
-      receiverId,
+      chatId,
       text,
       image: imgUrl,
     });
-
     await newMessage.save();
-    const receiverSocketId = getUserScoketId(receiverId);
 
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+    if (participants && participants.participants.length > 1) {
+      participants.participants.map((recieverId) => {
+        const receiverSocketId = getUserScoketId(recieverId.toString());
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
+      });
     }
 
     res.status(201).json(newMessage);
