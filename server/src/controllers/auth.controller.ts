@@ -167,6 +167,22 @@ export const checkAuth = async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (error) {
     console.error("Error in Check Auth", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error", error: error });
+  }
+};
+
+export const getUserByEmail = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  const { email } = req.query;
+  console.log("Email:", email);
+  try {
+    const user = await User.findOne({ email }).select("-password");
+    console.log("User found:", user);
+    res.status(200).json(user);
+  } catch (error) {
+    console.log("Error finding User: ", error);
+    res.status(500).json({ message: "Internal Server Error", error: error });
   }
 };

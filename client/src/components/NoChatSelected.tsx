@@ -1,10 +1,33 @@
 import { ActivityIcon } from "lucide-react";
 import { useState } from "react";
-import UserSkeleton from "./skeletons/userSkeleton";
+import UserSkeleton from "./skeletons/UserSkeleton";
+import { useUserStore } from "../store/useUserStore";
+import { useAuthStore } from "../store/useAuthStore";
+import { toastError, toastSuccess } from "../utils/notify";
 
 const NoChatSelected = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [action, setAction] = useState("");
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [action, setAction] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const { user, getUserByEmail, createChat } = useUserStore();
+  const { authUser } = useAuthStore();
+
+  const [participants, setParticipants] = useState<string[]>([
+    authUser?._id || "",
+  ]);
+
+  const handleAddContact = async () => {
+    try {
+      participants.push(user?._id || "");
+      await createChat(participants);
+      setModalOpen(false);
+      setParticipants([authUser?._id || ""]);
+      toastSuccess("Chat created successfully");
+    } catch (error) {
+      console.error("Error adding contact", error);
+      toastError("An unexpected error occurred");
+    }
+  };
 
   const handleModal = (action: string) => {
     setModalOpen(true);
@@ -60,21 +83,52 @@ const NoChatSelected = () => {
                         <input
                           className="input input-bordered join-item"
                           placeholder="Email Address"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
                         />
                       </div>
                     </div>
                     <div className="indicator">
-                      <button className="btn join-item">Search</button>
+                      <button
+                        className="btn join-item"
+                        onClick={() => getUserByEmail(email)}
+                      >
+                        Search
+                      </button>
                     </div>
                   </div>
                   <div className="mt-4 mb-2 bg-accent-100 rounded-md">
-                    <UserSkeleton />
+                    {user ? (
+                      <div className="flex items-center space-x-4 p-4 bg-base-200 rounded-md">
+                        <img
+                          src={user.profile_pic_url}
+                          alt="Profile"
+                          className="w-12 h-12 rounded-full"
+                        />
+                        <div>
+                          <div className="font-semibold">{user.full_name}</div>
+                          <div className="text-sm text-base-content/60">
+                            {user.bio}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <UserSkeleton />
+                    )}
                   </div>
                   <div className="flex flex-row items-center justify-center gap-2 mt-2">
-                    <button className="btn btn-outline btn-primary">Add</button>
+                    <button
+                      className="btn btn-outline btn-primary"
+                      onClick={handleAddContact}
+                    >
+                      Add
+                    </button>
                     <button
                       className="btn btn-outline btn-error"
-                      onClick={() => setModalOpen(false)}
+                      onClick={() => {
+                        setModalOpen(false);
+                        setEmail("");
+                      }}
                     >
                       Cancel
                     </button>
