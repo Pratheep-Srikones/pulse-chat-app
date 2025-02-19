@@ -3,18 +3,28 @@ import { useChatStore } from "../store/useChatStore";
 import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import {
+  getOtherUserID,
+  getOtherUserProfilePic,
+  getPersonalChatName,
+} from "../utils/chat";
 
 const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } =
-    useChatStore();
+  const {
+    selectedChat,
+    allChats,
+    getAllChats,
+    isChatsLoading,
+    setSelectedChat,
+  } = useChatStore();
 
-  const { onlineUsers } = useAuthStore();
+  const { onlineUsers, authUser } = useAuthStore();
 
   useEffect(() => {
-    getUsers();
-  }, [getUsers]);
+    getAllChats();
+  }, [getAllChats]);
 
-  if (isUsersLoading) {
+  if (isChatsLoading) {
     return (
       <div>
         <SidebarSkeleton />
@@ -26,19 +36,19 @@ const Sidebar = () => {
       <div className="border-b border-base-300 w-full p-5">
         <div className="flex items-center gap-2">
           <Users className="size-6" />
-          <span className="font-medium hidden lg:block">Contacts</span>
+          <span className="font-medium hidden lg:block">Chats</span>
         </div>
       </div>
       <div className="overflow-y-auto w-full py-3">
-        {users.map((user) => (
+        {allChats.map((chat) => (
           <button
-            key={user._id}
-            onClick={() => setSelectedUser(user)}
+            key={chat._id}
+            onClick={() => setSelectedChat(chat)}
             className={`
               w-full p-3 flex items-center gap-3
               hover:bg-base-300 transition-colors
               ${
-                selectedUser?._id === user._id
+                selectedChat?._id === chat._id
                   ? "bg-base-300 ring-1 ring-base-300"
                   : ""
               }
@@ -46,33 +56,51 @@ const Sidebar = () => {
           >
             <div className="relative mx-auto lg:mx-0">
               <img
-                src={user.profile_pic_url || "/avatar.png"}
-                alt={user.full_name}
+                src={
+                  chat.type === "group"
+                    ? chat.profile_pic_url
+                    : getOtherUserProfilePic(chat, authUser!._id || "") ||
+                      "/avatar.png"
+                }
+                alt={chat.name}
                 className="size-12 object-cover rounded-full"
               />
-              {onlineUsers?.includes(user!._id) && (
-                <span
-                  className="absolute bottom-0 right-0 size-3 bg-green-500 
-                  rounded-full ring-2 ring-zinc-900"
-                />
-              )}
+              {chat.type === "private" &&
+                onlineUsers?.includes(
+                  getOtherUserID(chat, authUser!._id || "")
+                ) && (
+                  <span
+                    className="absolute bottom-0 right-0 size-3 bg-green-500 
+                rounded-full ring-2 ring-zinc-900"
+                  />
+                )}
             </div>
 
             {/* User info - only visible on larger screens */}
             <div className="hidden lg:block text-left min-w-0">
-              <div className="font-medium truncate">{user.full_name}</div>
+              <div className="font-medium truncate">
+                {chat.type === "group"
+                  ? chat.name
+                  : getPersonalChatName(chat, authUser!._id || "")}
+              </div>
               <div className="text-sm text-zinc-400">
-                {onlineUsers?.includes(user!._id) ? (
-                  <span className="text-green-600">Online</span>
-                ) : (
-                  "Offline"
+                {chat.type === "private" && (
+                  <>
+                    {onlineUsers?.includes(
+                      getOtherUserID(chat, authUser!._id || "")
+                    ) ? (
+                      <span className="text-green-600">Online</span>
+                    ) : (
+                      "Offline"
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </button>
         ))}
 
-        {users.length === 0 && (
+        {allChats.length === 0 && (
           <div className="text-center text-zinc-500 py-4">No online users</div>
         )}
       </div>

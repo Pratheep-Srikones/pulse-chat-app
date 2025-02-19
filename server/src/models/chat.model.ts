@@ -23,6 +23,11 @@ const chatSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
     },
+    profile_pic_url: {
+      type: String,
+      default:
+        "https://images.pexels.com/photos/853168/pexels-photo-853168.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+    },
   },
   { timestamps: true }
 );

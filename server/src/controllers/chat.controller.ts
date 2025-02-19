@@ -18,6 +18,28 @@ export const getChats = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
+export const getPersonalChats = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  const currentUserID = req.user._id;
+  try {
+    const chats = await Chat.find({
+      participants: currentUserID,
+      type: "private",
+    })
+      .populate("participants")
+      .select("-password")
+      .populate("lastMessage")
+      .sort({ "lastMessage.createdAt": 1 });
+
+    console.log(chats);
+    res.status(200).json(chats);
+  } catch (error) {
+    console.error("Error fetching chats: ", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 export const createChat = async (req: AuthenticatedRequest, res: Response) => {
   const { participants, name } = req.body;
   const currentUserID = req.user._id;

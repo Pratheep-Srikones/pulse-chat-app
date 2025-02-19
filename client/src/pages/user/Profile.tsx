@@ -43,14 +43,14 @@ const Profile = () => {
   };
 
   const handleBioUpdate = async () => {
-    if (bio === authUser?.user?.bio) {
+    if (bio === authUser?.bio) {
       toastError("No changes detected");
       return;
     }
 
     await updateBio(bio);
   };
-  const [bio, setBio] = useState(authUser?.user?.bio || "");
+  const [bio, setBio] = useState(authUser?.bio || "");
 
   return (
     <div className="h-full pt-20">
@@ -69,7 +69,7 @@ const Profile = () => {
                 src={
                   typeof selectedImg === "string"
                     ? selectedImg
-                    : authUser!.user.profile_pic_url || "/avatar.png"
+                    : authUser!.profile_pic_url || "/avatar.png"
                 }
                 alt="Profile"
                 className="size-32 rounded-full object-cover border-4 "
@@ -111,7 +111,7 @@ const Profile = () => {
                 Full Name
               </div>
               <p className="px-4 py-2.5 bg-base-200 rounded-lg border">
-                {authUser?.user?.full_name}
+                {authUser?.full_name}
               </p>
             </div>
 
@@ -121,7 +121,7 @@ const Profile = () => {
                 Email Address
               </div>
               <p className="px-4 py-2.5 bg-base-200 rounded-lg border">
-                {authUser?.user?.email}
+                {authUser?.email}
               </p>
             </div>
 
@@ -147,7 +147,7 @@ const Profile = () => {
                 </div>
                 <div
                   className="relative group"
-                  onClick={() => setBio(authUser?.user?.bio || "")}
+                  onClick={() => setBio(authUser?.bio || "")}
                 >
                   <ListRestart className="w-4 h-4 hover:text-blue-500 transition-colors duration-200 cursor-pointer" />
                   <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 hidden group-hover:block bg-black text-white text-xs rounded py-1 px-2">
@@ -163,7 +163,7 @@ const Profile = () => {
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between py-2 border-b border-zinc-700">
                 <span>Member Since</span>
-                <span>{authUser!.user?.createdAt?.split("T")[0]}</span>
+                <span>{authUser?.createdAt?.split("T")[0]}</span>
               </div>
               <div className="flex items-center justify-between py-2">
                 <span>Account Status</span>

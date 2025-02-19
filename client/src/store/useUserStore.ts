@@ -7,6 +7,7 @@ interface UserState {
   user: AuthUser | null;
   getUserByEmail: (email: string) => Promise<void>;
   createChat: (participants: string[], name?: string) => Promise<void>;
+  resetUser: () => void;
 }
 
 export const useUserStore = create<UserState>((set) => ({
@@ -33,4 +34,6 @@ export const useUserStore = create<UserState>((set) => ({
       toastError("An unexpected error occurred");
     }
   },
+
+  resetUser: () => set({ user: null }),
 }));

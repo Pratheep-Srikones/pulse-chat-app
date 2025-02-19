@@ -1,26 +1,34 @@
 import { ActivityIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import UserSkeleton from "./skeletons/UserSkeleton";
 import { useUserStore } from "../store/useUserStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { toastError, toastSuccess } from "../utils/notify";
+import { useChatStore } from "../store/useChatStore";
+import { getPersonalChatName, getOtherUserID } from "../utils/chat";
 
 const NoChatSelected = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [action, setAction] = useState<string>("");
   const [email, setEmail] = useState<string>("");
-  const { user, getUserByEmail, createChat } = useUserStore();
+  const { user, getUserByEmail, createChat, resetUser } = useUserStore();
   const { authUser } = useAuthStore();
-
+  const { chats, getPersonalContacts } = useChatStore();
+  const [groupName, setGroupName] = useState<string>("");
   const [participants, setParticipants] = useState<string[]>([
     authUser?._id || "",
   ]);
+
+  useEffect(() => {
+    getPersonalContacts();
+  }, [getPersonalContacts]);
 
   const handleAddContact = async () => {
     try {
       participants.push(user?._id || "");
       await createChat(participants);
       setModalOpen(false);
+      resetUser();
       setParticipants([authUser?._id || ""]);
       toastSuccess("Chat created successfully");
     } catch (error) {
@@ -29,6 +37,18 @@ const NoChatSelected = () => {
     }
   };
 
+  const handleAddGroup = () => {
+    try {
+      createChat(participants, groupName);
+      setModalOpen(false);
+      setParticipants([authUser?._id || ""]);
+      setGroupName("");
+      toastSuccess("Group created successfully");
+    } catch (error) {
+      console.error("Error adding group", error);
+      toastError("An unexpected error occurred");
+    }
+  };
   const handleModal = (action: string) => {
     setModalOpen(true);
     setAction(action);
@@ -164,70 +184,56 @@ const NoChatSelected = () => {
                       type="text"
                       className="grow"
                       placeholder="Group Name"
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value)}
                     />
                   </label>
 
                   <div className="mt-2 p-2 max-h-48 overflow-y-auto custom-scrollbar">
                     <ul className="menu bg-base-200 rounded-box w-100">
-                      <li>
-                        <a>
-                          <div className="form-control">
-                            <label className="cursor-pointer label">
-                              <span className="label-text mr-2">
-                                Remember me
-                              </span>
-                              <input type="checkbox" className="checkbox" />
+                      {
+                        /* Add more items as needed */
+                        chats.map((chat) => (
+                          <li key={chat._id}>
+                            <label className="flex items-center gap-2">
+                              {chat.name ||
+                                getPersonalChatName(chat, authUser?._id || "")}
+                              <input
+                                type="checkbox"
+                                className="checkbox"
+                                checked={participants.includes(
+                                  getOtherUserID(chat, authUser?._id || "")
+                                )}
+                                onChange={(e) => {
+                                  setParticipants((prevParticipants) => {
+                                    const otherUserID = getOtherUserID(
+                                      chat,
+                                      authUser?._id || ""
+                                    );
+
+                                    if (e.target.checked) {
+                                      return [...prevParticipants, otherUserID]; // Add new participant correctly
+                                    } else {
+                                      return prevParticipants.filter(
+                                        (p) => p !== otherUserID
+                                      ); // Remove participant correctly
+                                    }
+                                  });
+                                }}
+                              />
                             </label>
-                          </div>
-                        </a>
-                      </li>
-                      <li>
-                        <a>
-                          <div className="form-control">
-                            <label className="cursor-pointer label">
-                              <span className="label-text mr-2">
-                                Remember me
-                              </span>
-                              <input type="checkbox" className="checkbox" />
-                            </label>
-                          </div>
-                        </a>
-                      </li>
-                      <li>
-                        <a>
-                          <div className="form-control">
-                            <label className="cursor-pointer label">
-                              <span className="label-text mr-2">
-                                Remember me
-                              </span>
-                              <input type="checkbox" className="checkbox" />
-                            </label>
-                          </div>
-                        </a>
-                      </li>
-                      <li>
-                        <a>
-                          <div className="form-control">
-                            <label className="cursor-pointer label">
-                              <span className="label-text mr-2">
-                                Remember me
-                              </span>
-                              <input type="checkbox" className="checkbox" />
-                            </label>
-                          </div>
-                        </a>
-                      </li>
-                      <li>
-                        <a>Item 2</a>
-                      </li>
-                      <li>
-                        <a>Item 3</a>
-                      </li>
+                          </li>
+                        ))
+                      }
+
                       {/* Add more items as needed */}
                     </ul>
                   </div>
                   <div className="flex flex-row items-center justify-center gap-2 mt-2">
-                    <button className="btn btn-outline btn-primary">
+                    <button
+                      className="btn btn-outline btn-primary"
+                      onClick={handleAddGroup}
+                    >
                       Create
                     </button>
                     <button

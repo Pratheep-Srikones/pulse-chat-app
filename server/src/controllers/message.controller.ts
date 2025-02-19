@@ -24,11 +24,13 @@ export const getOtherUsers = async (
 };
 
 export const getMessages = async (req: AuthenticatedRequest, res: Response) => {
-  const { id: chatId } = req.params;
+  const { chatId } = req.query;
   try {
     const messages = await Message.find({
       chatId,
-    });
+    })
+      .sort({ createdAt: 1 })
+      .populate("senderId", "full_name profile_pic_url");
 
     res.status(200).json(messages);
   } catch (error) {
@@ -63,16 +65,24 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
       text,
       image: imgUrl,
     });
-    await newMessage.save();
+    const savedMessage = await newMessage.save();
+    const populatedMessage = await savedMessage.populate(
+      "senderId",
+      "full_name profile_pic_url"
+    );
 
     if (participants && participants.participants.length > 1) {
       participants.participants.map((recieverId) => {
         const receiverSocketId = getUserScoketId(recieverId.toString());
         if (receiverSocketId) {
-          io.to(receiverSocketId).emit("newMessage", newMessage);
+          io.to(receiverSocketId).emit("newMessage", populatedMessage);
         }
       });
     }
+    const chat = await Chat.findOneAndUpdate(
+      { _id: chatId },
+      { $set: { lastMessage: newMessage._id } }
+    );
 
     res.status(201).json(newMessage);
   } catch (error) {

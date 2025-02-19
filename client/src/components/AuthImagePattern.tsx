@@ -12,12 +12,12 @@ const AuthImagePattern = ({
           {[...Array(9)].map((_, i) => (
             <div
               key={i}
-              className={`aspect-square rounded-2xl bg-primary/10 flex items-center justify-center ${
+              className={`aspect-square rounded-2xl bg-secondary/10 flex items-center justify-center ${
                 i % 2 === 0 ? "animate-pulse" : ""
               }`}
             >
               {i === 4 && (
-                <img src="/icon.svg" className="w-[100px] h-[100px]" />
+                <img src="/icon.svg" className="w-[100px] h-[100px] base-100" />
               )}
             </div>
           ))}
