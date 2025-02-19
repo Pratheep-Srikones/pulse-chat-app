@@ -11,20 +11,20 @@ const ChatContainer = () => {
     messages,
     getMessages,
     isMessagesLoading,
-    selectedUser,
+    selectedChat,
     subscribeToMessages,
     unsubscribeFromMessages,
   } = useChatStore();
   const { authUser } = useAuthStore();
   useEffect(() => {
-    if (selectedUser) {
-      getMessages(selectedUser._id);
+    if (selectedChat) {
+      getMessages(selectedChat._id);
       subscribeToMessages();
     }
     return () => {
       unsubscribeFromMessages();
     };
-  }, [getMessages, selectedUser, subscribeToMessages, unsubscribeFromMessages]);
+  }, [getMessages, selectedChat, subscribeToMessages, unsubscribeFromMessages]);
 
   const messageEndRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +52,7 @@ const ChatContainer = () => {
           <div
             key={message._id}
             className={`chat ${
-              message.senderId === authUser!._id ? "chat-end" : "chat-start"
+              message.senderId._id === authUser!._id ? "chat-end" : "chat-start"
             }`}
             ref={messageEndRef}
           >
@@ -60,9 +60,9 @@ const ChatContainer = () => {
               <div className="size-10 rounded-full border">
                 <img
                   src={
-                    message.senderId === authUser!._id
-                      ? authUser!.profile_pic_url || "/avatar.png"
-                      : selectedUser!.profile_pic_url || "/avatar.png"
+                    message.senderId.profile_pic_url
+                      ? message.senderId.profile_pic_url
+                      : "./avatar.png"
                   }
                   alt="profile pic"
                 />
@@ -74,6 +74,11 @@ const ChatContainer = () => {
               </time>
             </div>
             <div className="chat-bubble flex flex-col">
+              <span className="font-bold text-sm text-accent">
+                {message.senderId._id === authUser!._id
+                  ? "You"
+                  : message.senderId.full_name}
+              </span>
               {message.image && (
                 <img
                   src={message.image}

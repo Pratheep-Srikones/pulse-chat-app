@@ -6,34 +6,54 @@ import { AuthUser, useAuthStore } from "./useAuthStore";
 
 interface Message {
   _id: string;
-  senderId: string;
-  receiverId: string;
+  chatId: string;
+  senderId: { _id: string; full_name: string; profile_pic_url: string };
   text: string;
   image: string;
   createdAt: string;
   updatedAt: string;
 }
+export interface Chat {
+  _id: string;
+  participants: AuthUser[];
+  name?: string;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
+  lastMessage: Message;
+  profile_pic_url: string;
+}
 interface ChatState {
   messages: Message[];
   users: AuthUser[];
+  chats: Chat[];
+  allChats: Chat[];
 
+  selectedChat: Chat | null;
   selectedUser: AuthUser | null;
   isUsersLoading: boolean;
   isMessagesLoading: boolean;
+  isChatsLoading: boolean;
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
   sendMessage: (text: string, image: string) => Promise<void>;
   setSelectedUser: (user: AuthUser | null) => void;
+  setSelectedChat: (chat: Chat | null) => void;
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
+  getPersonalContacts: () => Promise<void>;
+  getAllChats: () => Promise<void>;
 }
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   users: [],
-
+  chats: [],
+  allChats: [],
+  selectedChat: null,
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  isChatsLoading: false,
 
   getUsers: async () => {
     set({ isUsersLoading: true });
@@ -48,10 +68,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ isUsersLoading: false });
     }
   },
-  getMessages: async (userId: string) => {
+  getMessages: async (chatId: string) => {
     set({ isMessagesLoading: true });
     try {
-      const res = await axiosInstance.get(`/messages/${userId}`);
+      const res = await axiosInstance.get(`/messages`, { params: { chatId } });
       set({ messages: res.data });
     } catch (error) {
       toastError("Error fetching messages");
@@ -61,10 +81,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
   sendMessage: async (text: string, image: string) => {
-    const { selectedUser, messages } = get();
+    const { selectedChat, messages } = get();
     try {
       const res = await axiosInstance.post(
-        `/messages/send/${selectedUser?._id}`,
+        `/messages/send/${selectedChat?._id}`,
         {
           text,
           image,
@@ -77,12 +97,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
   subscribeToMessages: () => {
-    const { selectedUser } = get();
+    const { selectedChat } = get();
 
-    if (!selectedUser) return;
+    if (!selectedChat) return;
     const socket = useAuthStore.getState().socket;
     socket?.on("newMessage", (newMessage: Message) => {
-      if (newMessage.senderId !== selectedUser._id) return;
+      if (newMessage.chatId !== selectedChat._id) return;
       set({ messages: [...get().messages, newMessage] });
     });
   },
@@ -92,4 +112,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
     socket?.off("newMessage");
   },
   setSelectedUser: (user: AuthUser | null) => set({ selectedUser: user }),
+  setSelectedChat: (chat: Chat | null) => set({ selectedChat: chat }),
+
+  getPersonalContacts: async () => {
+    try {
+      const response = await axiosInstance.get("/chats/private");
+      set({ chats: response.data });
+    } catch (error) {
+      console.error("Error fetching personal contacts: ", error);
+      toastError("An unexpected error occurred");
+    }
+  },
+
+  getAllChats: async () => {
+    set({ isChatsLoading: true });
+    try {
+      const response = await axiosInstance.get("/chats");
+      set({ allChats: response.data });
+      set({ isChatsLoading: false });
+    } catch (error) {
+      console.error("Error fetching chats: ", error);
+      toastError("An unexpected error occurred");
+    }
+  },
 }));
