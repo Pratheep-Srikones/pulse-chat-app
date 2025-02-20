@@ -31,9 +31,8 @@ export const getPersonalChats = async (
       .populate("participants")
       .select("-password")
       .populate("lastMessage")
-      .sort({ "lastMessage.createdAt": 1 });
+      .sort({ "lastMessage.createdAt": -1 });
 
-    console.log(chats);
     res.status(200).json(chats);
   } catch (error) {
     console.error("Error fetching chats: ", error);
@@ -161,4 +160,17 @@ export const removeParticipant = async (
     console.error("Error removing participant: ", error);
     res.status(500).json({ message: "Internal server error" });
   }
+};
+
+export const markAsRead = async (req: AuthenticatedRequest, res: Response) => {
+  const { chatId } = req.body;
+  const currentUserID = req.user._id;
+  await Message.updateMany(
+    { chatId, readBy: { $ne: currentUserID } },
+    { $push: { readBy: currentUserID } }
+  );
+
+  await Chat.findByIdAndUpdate(chatId, {
+    $set: { [`unreadCounts.${currentUserID}`]: 0 },
+  });
 };

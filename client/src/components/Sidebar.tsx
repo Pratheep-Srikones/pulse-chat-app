@@ -16,6 +16,7 @@ const Sidebar = () => {
     getAllChats,
     isChatsLoading,
     setSelectedChat,
+    markAsRead,
   } = useChatStore();
 
   const { onlineUsers, authUser } = useAuthStore();
@@ -43,7 +44,10 @@ const Sidebar = () => {
         {allChats.map((chat) => (
           <button
             key={chat._id}
-            onClick={() => setSelectedChat(chat)}
+            onClick={() => {
+              setSelectedChat(chat);
+              markAsRead(chat._id);
+            }}
             className={`
               w-full p-3 flex items-center gap-3
               hover:bg-base-300 transition-colors
@@ -83,18 +87,19 @@ const Sidebar = () => {
                   ? chat.name
                   : getPersonalChatName(chat, authUser!._id || "")}
               </div>
-              <div className="text-sm text-zinc-400">
-                {chat.type === "private" && (
-                  <>
-                    {onlineUsers?.includes(
-                      getOtherUserID(chat, authUser!._id || "")
-                    ) ? (
-                      <span className="text-green-600">Online</span>
-                    ) : (
-                      "Offline"
-                    )}
-                  </>
+              {chat.unreadMessages &&
+                chat.unreadMessages[authUser?._id as string] &&
+                chat.unreadMessages[authUser?._id as string] > 0 && (
+                  <div className="text-xs text-red-500">
+                    {chat.unreadMessages[authUser?._id as string]}
+                  </div>
                 )}
+              <div className="text-sm text-zinc-400">
+                {chat.lastMessage?.text
+                  ? chat.lastMessage.text
+                  : chat.lastMessage?.image
+                  ? "Image"
+                  : "No messages"}
               </div>
             </div>
           </button>

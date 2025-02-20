@@ -45,7 +45,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
   const senderId = req.user._id;
 
   const participants = await Chat.findOne({ _id: chatId }).select(
-    "participants"
+    "participants unreadCounts"
   );
   if (!participants) {
     res.status(404).json({ message: "Chat not found" });
@@ -71,18 +71,44 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
       "full_name profile_pic_url"
     );
 
-    if (participants && participants.participants.length > 1) {
-      participants.participants.map((recieverId) => {
-        const receiverSocketId = getUserScoketId(recieverId.toString());
+    // Ensure unreadCounts map exists before updating
+    const chat = await Chat.findById(newMessage.chatId);
+    if (!chat) {
+      res.status(404).json({ message: "Chat not found" });
+      return;
+    }
+
+    if (!chat.unreadCounts) {
+      chat.unreadCounts = new Map();
+    }
+
+    if (!chat.unreadCounts.has(senderId.toString())) {
+      chat.unreadCounts.set(senderId.toString(), 0);
+    }
+
+    await Chat.findByIdAndUpdate(newMessage.chatId, {
+      $set: { lastMessage: newMessage._id },
+      $setOnInsert: { [`unreadCounts.${senderId.toString()}`]: 0 },
+    });
+
+    if (participants.participants.length > 1) {
+      participants.participants.forEach(async (receiverId) => {
+        const receiverSocketId = getUserScoketId(receiverId.toString());
         if (receiverSocketId) {
           io.to(receiverSocketId).emit("newMessage", populatedMessage);
         }
+        if (receiverId.toString() !== senderId.toString()) {
+          if (!chat.unreadCounts.has(receiverId.toString())) {
+            await Chat.findByIdAndUpdate(newMessage.chatId, {
+              $set: { [`unreadCounts.${receiverId.toString()}`]: 0 },
+            });
+          }
+          await Chat.findByIdAndUpdate(newMessage.chatId, {
+            $inc: { [`unreadCounts.${receiverId.toString()}`]: 1 },
+          });
+        }
       });
     }
-    const chat = await Chat.findOneAndUpdate(
-      { _id: chatId },
-      { $set: { lastMessage: newMessage._id } }
-    );
 
     res.status(201).json(newMessage);
   } catch (error) {

@@ -22,6 +22,7 @@ export interface Chat {
   updatedAt: string;
   lastMessage: Message;
   profile_pic_url: string;
+  unreadMessages: { [key: string]: number };
 }
 interface ChatState {
   messages: Message[];
@@ -43,6 +44,8 @@ interface ChatState {
   unsubscribeFromMessages: () => void;
   getPersonalContacts: () => Promise<void>;
   getAllChats: () => Promise<void>;
+  updateChatOrder: (newMessage: Message) => void;
+  markAsRead: (chatId: string) => Promise<void>;
 }
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
@@ -102,8 +105,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!selectedChat) return;
     const socket = useAuthStore.getState().socket;
     socket?.on("newMessage", (newMessage: Message) => {
-      if (newMessage.chatId !== selectedChat._id) return;
-      set({ messages: [...get().messages, newMessage] });
+      if (newMessage.chatId === selectedChat._id) {
+        set({ messages: [...get().messages, newMessage] });
+      }
+      get().updateChatOrder(newMessage);
     });
   },
 
@@ -128,10 +133,43 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ isChatsLoading: true });
     try {
       const response = await axiosInstance.get("/chats");
-      set({ allChats: response.data });
+      const chats: Chat[] = response.data;
+      console.log(chats);
+      chats.sort((a, b) => {
+        const aDate = new Date(a.lastMessage?.createdAt);
+        const bDate = new Date(b.lastMessage?.createdAt);
+        return bDate.getTime() - aDate.getTime();
+      });
+      set({ allChats: chats });
+      console.log(chats);
       set({ isChatsLoading: false });
     } catch (error) {
       console.error("Error fetching chats: ", error);
+      toastError("An unexpected error occurred");
+    }
+  },
+
+  updateChatOrder: (newMessage: Message) => {
+    const { allChats } = get();
+    const updatedChats = allChats.map((chat) => {
+      if (chat._id === newMessage.chatId) {
+        return { ...chat, lastMessage: newMessage };
+      }
+      return chat;
+    });
+    updatedChats.sort((a, b) => {
+      const aDate = new Date(a.lastMessage?.createdAt);
+      const bDate = new Date(b.lastMessage?.createdAt);
+      return bDate.getTime() - aDate.getTime();
+    });
+    set({ allChats: updatedChats });
+  },
+
+  markAsRead: async (chatId: string) => {
+    try {
+      await axiosInstance.post(`/chats/mark-as-read/`, { chatId });
+    } catch (error) {
+      console.error("Error marking as read: ", error);
       toastError("An unexpected error occurred");
     }
   },
