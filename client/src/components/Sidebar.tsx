@@ -17,6 +17,7 @@ const Sidebar = () => {
     isChatsLoading,
     setSelectedChat,
     markAsRead,
+    resetUnreadCount,
   } = useChatStore();
 
   const { onlineUsers, authUser } = useAuthStore();
@@ -47,18 +48,20 @@ const Sidebar = () => {
             onClick={() => {
               setSelectedChat(chat);
               markAsRead(chat._id);
+              resetUnreadCount(chat._id);
             }}
             className={`
-              w-full p-3 flex items-center gap-3
-              hover:bg-base-300 transition-colors
-              ${
-                selectedChat?._id === chat._id
-                  ? "bg-base-300 ring-1 ring-base-300"
-                  : ""
-              }
-            `}
+    w-full p-3 flex items-center gap-3
+    rounded-lg transition-all duration-200 ease-in-out
+    hover:bg-base-300 hover:shadow-md
+    ${
+      selectedChat?._id === chat._id
+        ? "bg-base-300 ring-1 ring-base-300"
+        : "bg-base-100"
+    }
+  `}
           >
-            <div className="relative mx-auto lg:mx-0">
+            <div className="relative">
               <img
                 src={
                   chat.type === "group"
@@ -67,34 +70,37 @@ const Sidebar = () => {
                       "/avatar.png"
                 }
                 alt={chat.name}
-                className="size-12 object-cover rounded-full"
+                className="w-12 h-12 object-cover rounded-full"
               />
               {chat.type === "private" &&
                 onlineUsers?.includes(
                   getOtherUserID(chat, authUser!._id || "")
                 ) && (
                   <span
-                    className="absolute bottom-0 right-0 size-3 bg-green-500 
-                rounded-full ring-2 ring-zinc-900"
+                    className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 
+            rounded-full ring-2 ring-zinc-900"
                   />
+                )}
+              {/* Unread Message Count */}
+              {chat.unreadCounts &&
+                (chat.unreadCounts[authUser!._id] || 0) > 0 && (
+                  <span
+                    className="absolute -top-2 -right-2 bg-accent text-white text-xs 
+          font-bold px-1.5 py-0.5 rounded-full shadow-md"
+                  >
+                    {chat.unreadCounts[authUser!._id]}
+                  </span>
                 )}
             </div>
 
-            {/* User info - only visible on larger screens */}
-            <div className="hidden lg:block text-left min-w-0">
+            <div className="text-left min-w-0 flex-1">
               <div className="font-medium truncate">
                 {chat.type === "group"
                   ? chat.name
                   : getPersonalChatName(chat, authUser!._id || "")}
               </div>
-              {chat.unreadMessages &&
-                chat.unreadMessages[authUser?._id as string] &&
-                chat.unreadMessages[authUser?._id as string] > 0 && (
-                  <div className="text-xs text-red-500">
-                    {chat.unreadMessages[authUser?._id as string]}
-                  </div>
-                )}
-              <div className="text-sm text-zinc-400">
+
+              <div className="text-sm text-zinc-400 truncate max-w-xs">
                 {chat.lastMessage?.text
                   ? chat.lastMessage.text
                   : chat.lastMessage?.image

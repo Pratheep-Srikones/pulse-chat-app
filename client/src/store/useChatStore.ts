@@ -22,7 +22,7 @@ export interface Chat {
   updatedAt: string;
   lastMessage: Message;
   profile_pic_url: string;
-  unreadMessages: { [key: string]: number };
+  unreadCounts: { [key: string]: number };
 }
 interface ChatState {
   messages: Message[];
@@ -46,6 +46,8 @@ interface ChatState {
   getAllChats: () => Promise<void>;
   updateChatOrder: (newMessage: Message) => void;
   markAsRead: (chatId: string) => Promise<void>;
+  resetUnreadCount: (chatId: string) => Promise<void>;
+  increaseUnreadCount: (chatId: string) => void;
 }
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
@@ -107,6 +109,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     socket?.on("newMessage", (newMessage: Message) => {
       if (newMessage.chatId === selectedChat._id) {
         set({ messages: [...get().messages, newMessage] });
+      }
+      if (newMessage.senderId._id !== useAuthStore.getState().authUser?._id) {
+        get().increaseUnreadCount(newMessage.chatId);
       }
       get().updateChatOrder(newMessage);
     });
@@ -172,5 +177,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.error("Error marking as read: ", error);
       toastError("An unexpected error occurred");
     }
+  },
+
+  resetUnreadCount: async (chatId: string) => {
+    const { allChats } = get();
+    const updatedChats = allChats.map((chat) => {
+      if (chat._id === chatId) {
+        return { ...chat, unreadCounts: {} };
+      }
+      return chat;
+    });
+    set({ allChats: updatedChats });
+  },
+
+  increaseUnreadCount: (chatId: string) => {
+    const { allChats } = get();
+    const updatedChats = allChats.map((chat) => {
+      if (chat._id === chatId) {
+        const newUnreadCounts = { ...chat.unreadCounts };
+        newUnreadCounts[useAuthStore.getState().authUser!._id] =
+          (newUnreadCounts[useAuthStore.getState().authUser!._id] || 0) + 1;
+        return { ...chat, unreadCounts: newUnreadCounts };
+      }
+      return chat;
+    });
+    set({ allChats: updatedChats });
   },
 }));
