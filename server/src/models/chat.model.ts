@@ -23,6 +23,11 @@ const chatSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
     },
+    unreadCounts: {
+      type: Map,
+      of: Number,
+      default: {},
+    },
     profile_pic_url: {
       type: String,
       default:
