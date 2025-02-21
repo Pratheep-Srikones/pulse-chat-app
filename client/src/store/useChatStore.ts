@@ -4,7 +4,7 @@ import { toastError } from "../utils/notify";
 import axiosInstance from "../utils/axios";
 import { AuthUser, useAuthStore } from "./useAuthStore";
 
-interface Message {
+export interface Message {
   _id: string;
   chatId: string;
   senderId: { _id: string; full_name: string; profile_pic_url: string };
@@ -12,6 +12,7 @@ interface Message {
   image: string;
   createdAt: string;
   updatedAt: string;
+  readBy: string[];
 }
 export interface Chat {
   _id: string;
@@ -48,6 +49,7 @@ interface ChatState {
   markAsRead: (chatId: string) => Promise<void>;
   resetUnreadCount: (chatId: string) => Promise<void>;
   increaseUnreadCount: (chatId: string) => void;
+  findLastReadMessage: () => Message | undefined;
 }
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
@@ -77,6 +79,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ isMessagesLoading: true });
     try {
       const res = await axiosInstance.get(`/messages`, { params: { chatId } });
+      console.log("Messages:", res.data);
       set({ messages: res.data });
     } catch (error) {
       toastError("Error fetching messages");
@@ -110,8 +113,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
       if (newMessage.chatId === selectedChat._id) {
         set({ messages: [...get().messages, newMessage] });
       }
-      if (newMessage.senderId._id !== useAuthStore.getState().authUser?._id) {
+      if (
+        newMessage.senderId._id !== useAuthStore.getState().authUser?._id &&
+        newMessage.chatId !== selectedChat._id
+      ) {
         get().increaseUnreadCount(newMessage.chatId);
+      }
+      if (newMessage.chatId === selectedChat._id) {
+        newMessage.readBy.push(useAuthStore.getState().authUser!._id);
+        get().markAsRead(newMessage.chatId);
       }
       get().updateChatOrder(newMessage);
     });
@@ -139,14 +149,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const response = await axiosInstance.get("/chats");
       const chats: Chat[] = response.data;
-      console.log(chats);
       chats.sort((a, b) => {
         const aDate = new Date(a.lastMessage?.createdAt);
         const bDate = new Date(b.lastMessage?.createdAt);
         return bDate.getTime() - aDate.getTime();
       });
       set({ allChats: chats });
-      console.log(chats);
       set({ isChatsLoading: false });
     } catch (error) {
       console.error("Error fetching chats: ", error);
@@ -202,5 +210,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return chat;
     });
     set({ allChats: updatedChats });
+  },
+  findLastReadMessage: () => {
+    const { messages } = get();
+    const copy = messages.slice().reverse();
+    const lastReadMessage = copy.find((message) =>
+      message.readBy.includes(useAuthStore.getState().authUser!._id)
+    );
+    return lastReadMessage;
   },
 }));

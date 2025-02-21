@@ -25,9 +25,14 @@ const NoChatSelected = () => {
 
   const handleAddContact = async () => {
     try {
+      if (!user) {
+        toastError("Please Select a user");
+        return;
+      }
       participants.push(user?._id || "");
       await createChat(participants);
       setModalOpen(false);
+      setEmail("");
       resetUser();
       setParticipants([authUser?._id || ""]);
       toastSuccess("Chat created successfully");
@@ -39,6 +44,9 @@ const NoChatSelected = () => {
 
   const handleAddGroup = () => {
     try {
+      if (participants.length < 3) {
+        toastError("Please select at least 3 participants");
+      }
       createChat(participants, groupName);
       setModalOpen(false);
       setParticipants([authUser?._id || ""]);
