@@ -64,6 +64,7 @@ export const sendMessage = async (req: AuthenticatedRequest, res: Response) => {
       chatId,
       text,
       image: imgUrl,
+      readBy: [senderId],
     });
     const savedMessage = await newMessage.save();
     const populatedMessage = await savedMessage.populate(
